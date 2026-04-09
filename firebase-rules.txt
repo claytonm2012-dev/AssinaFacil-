@@ -1,0 +1,89 @@
+============================================================
+  REGRAS DE SEGURANÇA — FIREBASE ASSINAFÁCIL
+  Cole cada regra no console do Firebase
+============================================================
+
+━━━ 1. FIRESTORE RULES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Acesse: Firebase Console → Firestore → Rules
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Usuários só acessam seus próprios dados
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Documentos: owner acessa tudo; signatários podem ler e atualizar assinatura
+    match /documents/{docId} {
+      allow read: if request.auth != null && (
+        resource.data.ownerId == request.auth.uid ||
+        resource.data.signers.hasAny([{'email': request.auth.token.email}])
+      );
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && (
+        resource.data.ownerId == request.auth.uid ||
+        resource.data.signers.hasAny([{'email': request.auth.token.email}])
+      );
+      allow delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
+    }
+  }
+}
+
+
+━━━ 2. STORAGE RULES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Acesse: Firebase Console → Storage → Rules
+
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /documents/{userId}/{allPaths=**} {
+      // Dono pode ler e escrever
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // Signatários podem ler (link direto)
+      allow read: if request.auth != null;
+    }
+  }
+}
+
+
+━━━ 3. AUTHENTICATION ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Acesse: Firebase Console → Authentication → Sign-in method
+
+Ative:
+  ✅ Email/Password
+  ✅ Google
+
+Em "Authorized domains" adicione:
+  - localhost
+  - 127.0.0.1
+  - (seu domínio quando hospedar)
+
+
+━━━ 4. ÍNDICES FIRESTORE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Acesse: Firebase Console → Firestore → Indexes
+
+Crie um índice composto:
+  Collection: documents
+  Fields:
+    - ownerId   (Ascending)
+    - createdAt (Descending)
+
+Ou abra o link que aparece no console do navegador
+quando você carregar o painel pela primeira vez.
+
+
+━━━ 5. CORS STORAGE (se necessário) ━━━━━━━━━━━━━━━━━━━━━
+Se os PDFs não carregarem, instale gsutil e execute:
+
+  gsutil cors set cors.json gs://assinafacil-38bb9.firebasestorage.app
+
+cors.json:
+[{
+  "origin": ["*"],
+  "method": ["GET"],
+  "maxAgeSeconds": 3600
+}]
+
+============================================================

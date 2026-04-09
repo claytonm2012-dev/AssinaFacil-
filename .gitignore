@@ -1,0 +1,4 @@
+node_modules
+servidor-pagamento/node_modules
+.env
+servidor-pagamento/.env
