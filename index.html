@@ -5371,7 +5371,7 @@ function togglePw(id, icon) {
   var inp = document.getElementById(id);
   if (!inp) return;
   inp.type = inp.type === 'password' ? 'text' : 'password';
-  if (icon) icon.textContent = inp.type === 'password' ? '👁' : '🙈';
+  if (icon) icon.textContent = inp.type === 'password' ? '👁' : '���';
 }
 
 // ── CHECKBOX ─────────────────────────────────────────
@@ -5414,7 +5414,7 @@ function checkStrength2(pw) {
   applyStrength(calcStrength(pw), 'pw-label2', ['bar1b','bar2b','bar3b','bar4b']);
 }
 
-// ── TOAST ─────────────────────────────────────────────
+// ── TOAST ──────────────────────────────────────────���──
 function showToast(msg, type) {
   type = type || 'success';
   var t = document.getElementById('toast');
@@ -6646,7 +6646,7 @@ async function captureForLiveness(){
   try {
     const resp=await fetch(data); const blob=await resp.blob();
     const fd=new FormData(); fd.append('image',blob,'live.jpg');
-    const res=await fetch('http://localhost:3001/auth/liveness/verificar',{method:'POST',body:fd});
+    const res=await fetch(API+'/auth/liveness/verificar',{method:'POST',body:fd});
     const d=await res.json();
     const status=document.getElementById('live-status');
     if(d.success){
@@ -6787,7 +6787,7 @@ async function idStep3(){
     fd.append('cpf',_idCpf||'');
     const sr=await fetch(_idSelfieData); fd.append('selfie',await sr.blob(),'selfie.jpg');
     const dr=await fetch(_idDocData); fd.append('documento',await dr.blob(),'doc.jpg');
-    const res=await fetch('http://localhost:3001/auth/identidade-completa',{method:'POST',body:fd});
+    const res=await fetch(API+'/auth/identidade-completa',{method:'POST',body:fd});
     const d=await res.json();
     clearInterval(iv); if(prog) prog.style.width='100%';
     setTimeout(()=>showIdentityResult(d),500);
@@ -7281,31 +7281,18 @@ window.initDashboard = function() {
   docs = getDocs();
   activity = getActivity();
   
-  // Re-renderiza a interface
+  // Re-renderiza a interface (tabela local do script)
   renderDocs(docs);
   renderActivity();
   renderChart('7m');
   
-  // Atualiza contadores
-  const totalDocs = docs.length;
-  const pendingDocs = docs.filter(d => d.status === 'pending').length;
-  const completeDocs = docs.filter(d => d.status === 'complete').length;
-  
-  // Atualiza os cards de estatísticas se existirem
-  const totalEl = document.querySelector('[data-target]');
-  if (totalEl) {
-    // Anima os contadores com valores reais
-    document.querySelectorAll('[data-target]').forEach((el, i) => {
-      const targets = [totalDocs, pendingDocs, completeDocs, totalDocs];
-      const target = targets[i] !== undefined ? targets[i] : parseInt(el.dataset.target) || 0;
-      el.textContent = target;
-    });
-  }
+  // Tambem chama o renderizador global para atualizar stats e tabela principal
+  if (window._renderDashboard) window._renderDashboard();
   
   // Atualiza sidebar
   if (window.updateSidebarStats) window.updateSidebarStats();
   
-  console.log('[Dashboard] Inicializado com', docs.length, 'documentos');
+  console.log('[Dashboard] Inicializado com', (window.allDocs || []).length, 'documentos do Firebase');
 };
 
 // ── window exports ──
@@ -7564,7 +7551,7 @@ async function processPayment() {
 }
 
 async function processBoleto(btn, originalHTML) {
-  const API = 'http://localhost:3001';
+  const API = window.ASSINAFACIL_API_URL || 'https://assinafacil-api.onrender.com';
   const email = window.currentUser ? window.currentUser.email : 'cliente@email.com';
   const planName = selectedPlan ? selectedPlan.name : 'Mensal';
   if (btn) { btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Gerando boleto...'; }
@@ -7639,7 +7626,7 @@ function generateQR() {
 function copyPix() {
   const code = document.getElementById('pix-code').textContent;
   navigator.clipboard.writeText(code).catch(()=>{});
-  showToast('Código PIX copiado!', 'success');
+  showToast('C��digo PIX copiado!', 'success');
   // simulate payment after copy (demo)
   setTimeout(() => {
     closePixModal();
@@ -7702,7 +7689,7 @@ window.showToast = showToast;
 
 // ── SERVER PAYMENT INTEGRATION ──
 async function pagarViaServidor(method) {
-  const API = 'http://localhost:3001';
+  const API = window.ASSINAFACIL_API_URL || 'https://assinafacil-api.onrender.com';
   const planEl = document.querySelector('.plan-card.selected, .plan-option.active, [data-selected="true"]');
   const planName = window.selectedPlanName || 'Mensal';
   const user = window.currentUser;
@@ -7897,7 +7884,7 @@ console.log('✅ Firebase inicializado — AssinaFácil');
 // ══════════════════════════════════════════════════════
 //  ICP-BRASIL A1 — Modal de Assinatura com Certificado
 // ══════════════════════════════════════════════════════
-const API_ICP = 'http://localhost:3001';
+const API_ICP = window.ASSINAFACIL_API_URL || 'https://assinafacil-api.onrender.com';
 
 function openIcpModal() {
   removeModal('icp-modal');
