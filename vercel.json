@@ -22,7 +22,35 @@
   ],
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/assina-facil",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/assina-facil/(.*)",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/dashboard",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/upload",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/sign",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/auth",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/pay",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/((?!api|_next|favicon|.*\\..*).*)",
       "destination": "/index.html"
     }
   ]

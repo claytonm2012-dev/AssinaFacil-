@@ -4002,7 +4002,7 @@ html, body { overflow-x: hidden; }
     </div>
   </div>
 
-  <button class="topbar-btn" onclick="window.location.href='assina-facil.html'">← Voltar</button>
+  <button class="topbar-btn" onclick="window.navigate('dash')">← Voltar</button>
 </header>
 
 <!-- MAIN LAYOUT -->
@@ -4742,7 +4742,7 @@ html, body { overflow-x: hidden; }
     <div class="modal-actions">
       <button class="m-btn" onclick="showToast('Copiando link...','info');closeModal('doc-modal')">🔗 Copiar link</button>
       <button class="m-btn" onclick="showToast('Baixando PDF...','info');closeModal('doc-modal')">⬇ Baixar</button>
-      <button class="m-btn m-btn-gold" onclick="window.location.href='assinar.html'">✍️ Ver doc</button>
+      <button class="m-btn m-btn-gold" onclick="window.navigate('sign')">Ver doc</button>
     </div>
   </div>
 </div>
@@ -5167,7 +5167,16 @@ window.navigate = function(view, opts) {
     }
   }
 
+  // Se estava no upload e agora vai para outra view, reseta o upload
+  var previousView = window.currentAppView;
   window.currentAppView = view;
+  
+  if (previousView === 'upload' && view !== 'upload') {
+    // Reseta o estado do upload para evitar problemas ao voltar
+    setTimeout(function() {
+      if (window.resetUpload) window.resetUpload();
+    }, 100);
+  }
 
   // Scroll to top of any scrollable content
   if (target) target.scrollTop = 0;
@@ -5176,6 +5185,10 @@ window.navigate = function(view, opts) {
   // View-specific init
   if (view === 'dash' && window.initDashboard) {
     setTimeout(window.initDashboard, 80);
+  }
+  if (view === 'upload' && window.resetUpload) {
+    // Garante que a tela de upload comeca limpa
+    setTimeout(window.resetUpload, 50);
   }
   if (view === 'pay' && window.loadMPSdk) {
     window.loadMPSdk();
@@ -5870,22 +5883,32 @@ function changePage(dir) {
 }
 
 function resetUpload() {
-  pdfDoc = null; currentPage = 1; totalPages = 0;
-  signers = [];
-  document.getElementById('upload-zone').style.display = '';
-  (document.getElementById('pdf-preview')||{classList:{add:function(){},remove:function(){},toggle:function(){}}}).classList.remove('show');
-  (document.getElementById('main-preview')||{classList:{add:function(){},remove:function(){},toggle:function(){}}}).classList.remove('show');
-  document.getElementById('thumbnails-grid').innerHTML = '';
-  document.getElementById('file-input').value = '';
-  document.getElementById('empty-right').style.display = 'flex';
-  document.getElementById('panel-form').style.display = 'none';
-  document.getElementById('signers-list').innerHTML = '';
-  updateSendBtn();
-  ['step1','step2','step3'].forEach(s => {
-    document.getElementById(s).classList.remove('active','done');
-  });
-  (document.getElementById('step1')||{classList:{add:function(){},remove:function(){},toggle:function(){}}}).classList.add('active');
-  ['line1','line2'].forEach(l => document.getElementById(l).classList.remove('done-line'));
+  try {
+    pdfDoc = null; currentPage = 1; totalPages = 0;
+    signers = [];
+    
+    var el;
+    el = document.getElementById('upload-zone'); if (el) el.style.display = '';
+    el = document.getElementById('pdf-preview'); if (el) el.classList.remove('show');
+    el = document.getElementById('main-preview'); if (el) el.classList.remove('show');
+    el = document.getElementById('thumbnails-grid'); if (el) el.innerHTML = '';
+    el = document.getElementById('file-input'); if (el) el.value = '';
+    el = document.getElementById('empty-right'); if (el) el.style.display = 'flex';
+    el = document.getElementById('panel-form'); if (el) el.style.display = 'none';
+    el = document.getElementById('signers-list'); if (el) el.innerHTML = '';
+    
+    if (typeof updateSendBtn === 'function') updateSendBtn();
+    
+    ['step1','step2','step3'].forEach(function(s) {
+      el = document.getElementById(s); if (el) el.classList.remove('active','done');
+    });
+    el = document.getElementById('step1'); if (el) el.classList.add('active');
+    ['line1','line2'].forEach(function(l) {
+      el = document.getElementById(l); if (el) el.classList.remove('done-line');
+    });
+  } catch(e) {
+    // Ignora erros de reset silenciosamente
+  }
 }
 
 // ── AUTH OPTIONS ──
@@ -8401,8 +8424,8 @@ window._renderDashboard = function() {
     '<td><span class="doc-status ' + s.cls + '">' + s.icon + ' ' + s.label + '</span></td>' +
     '<td style="font-size:.8rem;color:rgba(255,255,255,.5)">' + dtStr + '</td>' +
     '<td style="font-size:.8rem;color:rgba(255,255,255,.35)">—</td>' +
-    '<td><button onclick="window.currentDocId=\'' + (doc.id || '') + '\'; window.location.href=\'sign.html\'" style="background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.2);color:#c9a84c;padding:.3rem .7rem;border-radius:6px;font-size:.75rem;cursor:pointer;font-weight:600">Assinar</button></td>' +
-    '<td><button onclick="window.currentDocId=\'' + (doc.id || '') + '\'; window.location.href=\'view.html\'" style="background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.2);color:#c9a84c;padding:.3rem .7rem;border-radius:6px;font-size:.75rem;cursor:pointer;font-weight:600">Ver</button></td>' +
+    '<td><button onclick="window.currentDocId=\'' + (doc.id || '') + '\'; window.navigate(\'sign\')" style="background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.2);color:#c9a84c;padding:.3rem .7rem;border-radius:6px;font-size:.75rem;cursor:pointer;font-weight:600">Assinar</button></td>' +
+    '<td><button onclick="window.currentDocId=\'' + (doc.id || '') + '\'; window.navigate(\'sign\')" style="background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.2);color:#c9a84c;padding:.3rem .7rem;border-radius:6px;font-size:.75rem;cursor:pointer;font-weight:600">Ver</button></td>' +
   '</tr>';
 }).join('');
 
