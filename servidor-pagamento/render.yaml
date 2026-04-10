@@ -1,0 +1,52 @@
+# Configuração para deploy no Render.com
+# https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: assinafacil-api
+    runtime: node
+    region: ohio # us-east
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      # Variáveis sensíveis - configurar manualmente no dashboard do Render
+      - key: MERCADO_PAGO_ACCESS_TOKEN
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_REGION
+        value: us-east-1
+      - key: AWS_S3_BUCKET
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_PHONE_NUMBER
+        sync: false
+      - key: ZAPI_INSTANCE_ID
+        sync: false
+      - key: ZAPI_TOKEN
+        sync: false
+      - key: EMAIL_HOST
+        sync: false
+      - key: EMAIL_PORT
+        value: "587"
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASS
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: FRONTEND_URL
+        value: https://assinafacil.vercel.app
+      - key: CORS_ORIGINS
+        value: https://assinafacil.vercel.app,https://assinafacil-api.onrender.com

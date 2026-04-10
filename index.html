@@ -12,7 +12,12 @@
 
 
 <script>
-/* PDF.js loader removed */</script>
+/* Configuração Global - AssinaFácil */
+/* Em produção, esta URL deve apontar para o backend no Render/Railway */
+window.ASSINAFACIL_API_URL = 'https://assinafacil-api.onrender.com';
+/* Para desenvolvimento local, descomente a linha abaixo: */
+// window.ASSINAFACIL_API_URL = 'http://localhost:3001';
+</script>
 <style>
 /* ── ROUTER ── */
 .app-view { display:none !important; }
@@ -2163,7 +2168,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .fill-blue{background:linear-gradient(90deg,#1a3a6b,#3b82f6);}
 .fill-green{background:linear-gradient(90deg,#166534,var(--success));}
 
-/* ── DOCS TABLE ── */
+/* ── DOCS TABLE ��─ */
 .docs-section{background:var(--glass);border:1px solid var(--border);border-radius:16px;overflow:hidden;}
 .section-header{
   display:flex;align-items:center;justify-content:space-between;
@@ -3997,7 +4002,7 @@ html, body { overflow-x: hidden; }
     </div>
   </div>
 
-  <button class="topbar-btn" onclick="window.location.href='assina-facil.html'">← Voltar</button>
+  <button class="topbar-btn" onclick="window.navigate('dash')">← Voltar</button>
 </header>
 
 <!-- MAIN LAYOUT -->
@@ -4737,7 +4742,7 @@ html, body { overflow-x: hidden; }
     <div class="modal-actions">
       <button class="m-btn" onclick="showToast('Copiando link...','info');closeModal('doc-modal')">🔗 Copiar link</button>
       <button class="m-btn" onclick="showToast('Baixando PDF...','info');closeModal('doc-modal')">⬇ Baixar</button>
-      <button class="m-btn m-btn-gold" onclick="window.location.href='assinar.html'">✍️ Ver doc</button>
+      <button class="m-btn m-btn-gold" onclick="window.navigate('sign')">Ver doc</button>
     </div>
   </div>
 </div>
@@ -5162,7 +5167,16 @@ window.navigate = function(view, opts) {
     }
   }
 
+  // Se estava no upload e agora vai para outra view, reseta o upload
+  var previousView = window.currentAppView;
   window.currentAppView = view;
+  
+  if (previousView === 'upload' && view !== 'upload') {
+    // Reseta o estado do upload para evitar problemas ao voltar
+    setTimeout(function() {
+      if (window.resetUpload) window.resetUpload();
+    }, 100);
+  }
 
   // Scroll to top of any scrollable content
   if (target) target.scrollTop = 0;
@@ -5171,6 +5185,10 @@ window.navigate = function(view, opts) {
   // View-specific init
   if (view === 'dash' && window.initDashboard) {
     setTimeout(window.initDashboard, 80);
+  }
+  if (view === 'upload' && window.resetUpload) {
+    // Garante que a tela de upload comeca limpa
+    setTimeout(window.resetUpload, 50);
   }
   if (view === 'pay' && window.loadMPSdk) {
     window.loadMPSdk();
@@ -5366,7 +5384,7 @@ function togglePw(id, icon) {
   var inp = document.getElementById(id);
   if (!inp) return;
   inp.type = inp.type === 'password' ? 'text' : 'password';
-  if (icon) icon.textContent = inp.type === 'password' ? '👁' : '🙈';
+  if (icon) icon.textContent = inp.type === 'password' ? '👁' : '���';
 }
 
 // ── CHECKBOX ─────────────────────────────────────────
@@ -5409,7 +5427,7 @@ function checkStrength2(pw) {
   applyStrength(calcStrength(pw), 'pw-label2', ['bar1b','bar2b','bar3b','bar4b']);
 }
 
-// ── TOAST ─────────────────────────────────────────────
+// ── TOAST ──────────────────────────────────────────���──
 function showToast(msg, type) {
   type = type || 'success';
   var t = document.getElementById('toast');
@@ -5865,22 +5883,32 @@ function changePage(dir) {
 }
 
 function resetUpload() {
-  pdfDoc = null; currentPage = 1; totalPages = 0;
-  signers = [];
-  document.getElementById('upload-zone').style.display = '';
-  (document.getElementById('pdf-preview')||{classList:{add:function(){},remove:function(){},toggle:function(){}}}).classList.remove('show');
-  (document.getElementById('main-preview')||{classList:{add:function(){},remove:function(){},toggle:function(){}}}).classList.remove('show');
-  document.getElementById('thumbnails-grid').innerHTML = '';
-  document.getElementById('file-input').value = '';
-  document.getElementById('empty-right').style.display = 'flex';
-  document.getElementById('panel-form').style.display = 'none';
-  document.getElementById('signers-list').innerHTML = '';
-  updateSendBtn();
-  ['step1','step2','step3'].forEach(s => {
-    document.getElementById(s).classList.remove('active','done');
-  });
-  (document.getElementById('step1')||{classList:{add:function(){},remove:function(){},toggle:function(){}}}).classList.add('active');
-  ['line1','line2'].forEach(l => document.getElementById(l).classList.remove('done-line'));
+  try {
+    pdfDoc = null; currentPage = 1; totalPages = 0;
+    signers = [];
+    
+    var el;
+    el = document.getElementById('upload-zone'); if (el) el.style.display = '';
+    el = document.getElementById('pdf-preview'); if (el) el.classList.remove('show');
+    el = document.getElementById('main-preview'); if (el) el.classList.remove('show');
+    el = document.getElementById('thumbnails-grid'); if (el) el.innerHTML = '';
+    el = document.getElementById('file-input'); if (el) el.value = '';
+    el = document.getElementById('empty-right'); if (el) el.style.display = 'flex';
+    el = document.getElementById('panel-form'); if (el) el.style.display = 'none';
+    el = document.getElementById('signers-list'); if (el) el.innerHTML = '';
+    
+    if (typeof updateSendBtn === 'function') updateSendBtn();
+    
+    ['step1','step2','step3'].forEach(function(s) {
+      el = document.getElementById(s); if (el) el.classList.remove('active','done');
+    });
+    el = document.getElementById('step1'); if (el) el.classList.add('active');
+    ['line1','line2'].forEach(function(l) {
+      el = document.getElementById(l); if (el) el.classList.remove('done-line');
+    });
+  } catch(e) {
+    // Ignora erros de reset silenciosamente
+  }
 }
 
 // ── AUTH OPTIONS ──
@@ -6002,7 +6030,8 @@ window.changePage = changePage;
 <script>
 (function(){
 try{
-const API = 'http://localhost:3001';
+// API URL dinâmico - usa variável global ou fallback para produção
+const API = window.ASSINAFACIL_API_URL || 'https://assinafacil-api.onrender.com';
 
 // ── STATE ──
 let activeTab = 'draw';
@@ -6640,7 +6669,7 @@ async function captureForLiveness(){
   try {
     const resp=await fetch(data); const blob=await resp.blob();
     const fd=new FormData(); fd.append('image',blob,'live.jpg');
-    const res=await fetch('http://localhost:3001/auth/liveness/verificar',{method:'POST',body:fd});
+    const res=await fetch(API+'/auth/liveness/verificar',{method:'POST',body:fd});
     const d=await res.json();
     const status=document.getElementById('live-status');
     if(d.success){
@@ -6781,7 +6810,7 @@ async function idStep3(){
     fd.append('cpf',_idCpf||'');
     const sr=await fetch(_idSelfieData); fd.append('selfie',await sr.blob(),'selfie.jpg');
     const dr=await fetch(_idDocData); fd.append('documento',await dr.blob(),'doc.jpg');
-    const res=await fetch('http://localhost:3001/auth/identidade-completa',{method:'POST',body:fd});
+    const res=await fetch(API+'/auth/identidade-completa',{method:'POST',body:fd});
     const d=await res.json();
     clearInterval(iv); if(prog) prog.style.width='100%';
     setTimeout(()=>showIdentityResult(d),500);
@@ -6850,25 +6879,108 @@ window.addEventListener('load',()=>{ initCanvas(); updateChips(); });
 <script>
 (function(){
 try{
-// ── DATA ──
-const docs = [
-  { id:1, name:'Contrato de Prestação de Serviços', type:'Contrato', signers:[{n:'João M.',c:'#1a3a6b'},{n:'Maria S.',c:'#6b1a3a'}], status:'pending', sent:'02/04/2025', expires:'16/04/2025', signed:1, total:2 },
-  { id:2, name:'NDA — Projeto Alpha', type:'Acordo de Confidencialidade', signers:[{n:'Pedro A.',c:'#1a6b3a'}], status:'complete', sent:'28/03/2025', expires:'27/04/2025', signed:1, total:1 },
-  { id:3, name:'Proposta Comercial — TechGroup', type:'Proposta', signers:[{n:'Ana L.',c:'#6b5a1a'},{n:'Carlos P.',c:'#3a1a6b'},{n:'Luiza R.',c:'#1a5c6b'}], status:'complete', sent:'25/03/2025', expires:'24/04/2025', signed:3, total:3 },
-  { id:4, name:'Distrato Contratual — Março', type:'Distrato', signers:[{n:'Roberto F.',c:'#6b1a1a'}], status:'expired', sent:'01/03/2025', expires:'31/03/2025', signed:0, total:1 },
-  { id:5, name:'Contrato de Locação — Ap. 42', type:'Contrato', signers:[{n:'Mariana C.',c:'#1a3a6b'},{n:'José N.',c:'#6b1a3a'}], status:'pending', sent:'05/04/2025', expires:'19/04/2025', signed:0, total:2 },
-  { id:6, name:'Termo de Aceite — Plataforma', type:'Termo', signers:[{n:'Beatriz O.',c:'#1a6b3a'}], status:'draft', sent:'—', expires:'—', signed:0, total:1 },
-  { id:7, name:'Procuração Ad Judicia', type:'Procuração', signers:[{n:'Fernando M.',c:'#6b5a1a'},{n:'Dra. Ana K.',c:'#3a1a6b'}], status:'pending', sent:'06/04/2025', expires:'20/04/2025', signed:1, total:2 },
-];
+// ═══════════════════════════════════════════════════════════════
+//  DASHBOARD - DADOS DINÂMICOS
+//  Usa window.allDocs do Firebase quando disponível
+//  Caso contrário, mostra estado vazio elegante
+// ═══════════════════════════════════════════════════════════════
 
-const activity = [
-  { type:'sign', avatar:'JM', color:'#1a3a6b', text:'<strong>João Mendes</strong> assinou <span class="highlight">Contrato de Prestação</span>', time:'Há 12 minutos' },
-  { type:'send', avatar:'CL', color:'#6b1a3a', text:'Você enviou <span class="highlight">Procuração Ad Judicia</span> para 2 signatários', time:'Há 2 horas' },
-  { type:'view', avatar:'MC', color:'#1a6b3a', text:'<strong>Mariana Costa</strong> visualizou <span class="highlight">Contrato de Locação</span>', time:'Há 4 horas' },
-  { type:'sign', avatar:'PA', color:'#6b5a1a', text:'<strong>Pedro Alves</strong> assinou <span class="highlight">NDA — Projeto Alpha</span>', time:'Ontem, 18:34' },
-  { type:'exp', avatar:'RF', color:'#6b1a1a', text:'<span class="highlight">Distrato Contratual</span> expirou sem todas as assinaturas', time:'Ontem, 00:00' },
-  { type:'send', avatar:'CL', color:'#1a3a6b', text:'Você enviou <span class="highlight">Contrato de Locação</span> para assinatura', time:'5 abr, 10:20' },
-];
+// Função para obter documentos (do Firebase ou vazio)
+function getDocs() {
+  if (window.allDocs && window.allDocs.length > 0) {
+    // Converter formato Firebase para formato do dashboard
+    return window.allDocs.map((doc, idx) => {
+      const signers = (doc.signers || []).map((s, i) => ({
+        n: s.name || s.email || 'Signatário',
+        c: ['#1a3a6b','#6b1a3a','#1a6b3a','#6b5a1a','#3a1a6b'][i % 5]
+      }));
+      const signedCount = (doc.signers || []).filter(s => s.signedAt).length;
+      const totalCount = (doc.signers || []).length || 1;
+      
+      // Determinar status
+      let status = doc.status || 'draft';
+      if (status === 'signed' || status === 'completed') status = 'complete';
+      if (status === 'waiting') status = 'pending';
+      
+      // Formatar datas
+      const sentDate = doc.createdAt ? formatDate(doc.createdAt) : '—';
+      const expDate = doc.expiresAt ? formatDate(doc.expiresAt) : '—';
+      
+      return {
+        id: doc.id || idx + 1,
+        name: doc.name || doc.fileName || 'Documento sem título',
+        type: doc.type || 'Documento',
+        signers: signers.length > 0 ? signers : [{n:'Você',c:'#1a3a6b'}],
+        status: status,
+        sent: sentDate,
+        expires: expDate,
+        signed: signedCount,
+        total: totalCount
+      };
+    });
+  }
+  return []; // Retorna vazio se não houver documentos
+}
+
+function formatDate(dateInput) {
+  try {
+    const d = dateInput?.toDate ? dateInput.toDate() : new Date(dateInput);
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  } catch(e) { return '—'; }
+}
+
+// Função para obter atividades recentes (do Firebase ou vazio)
+function getActivity() {
+  if (window.allDocs && window.allDocs.length > 0) {
+    // Gerar atividades baseadas nos documentos reais
+    const activities = [];
+    window.allDocs.slice(0, 6).forEach(doc => {
+      const signers = doc.signers || [];
+      signers.forEach(s => {
+        if (s.signedAt) {
+          activities.push({
+            type: 'sign',
+            avatar: (s.name || 'U').slice(0,2).toUpperCase(),
+            color: '#1a6b3a',
+            text: `<strong>${s.name || 'Signatário'}</strong> assinou <span class="highlight">${doc.name || 'documento'}</span>`,
+            time: formatTimeAgo(s.signedAt)
+          });
+        }
+      });
+      if (doc.createdAt) {
+        activities.push({
+          type: 'send',
+          avatar: 'VC',
+          color: '#1a3a6b',
+          text: `Você enviou <span class="highlight">${doc.name || 'documento'}</span> para assinatura`,
+          time: formatTimeAgo(doc.createdAt)
+        });
+      }
+    });
+    return activities.slice(0, 6);
+  }
+  return []; // Retorna vazio se não houver atividades
+}
+
+function formatTimeAgo(dateInput) {
+  try {
+    const d = dateInput?.toDate ? dateInput.toDate() : new Date(dateInput);
+    const now = new Date();
+    const diff = now - d;
+    const mins = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    
+    if (mins < 60) return `Há ${mins} minutos`;
+    if (hours < 24) return `Há ${hours} horas`;
+    if (days === 1) return 'Ontem';
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+  } catch(e) { return 'Recentemente'; }
+}
+
+// Variáveis dinâmicas
+let docs = getDocs();
+let activity = getActivity();
 
 const feedIcons = { sign:'✅', send:'📤', view:'👁', exp:'⚠️' };
 const feedClass = { sign:'fi-sign', send:'fi-send', view:'fi-view', exp:'fi-exp' };
@@ -7018,7 +7130,32 @@ function setCf(btn, key) {
 // ── DOCS TABLE ──
 function renderDocs(data) {
   const tbody = document.getElementById('docs-tbody');
+  if (!tbody) return;
   tbody.innerHTML = '';
+  
+  // Estado vazio elegante quando não há documentos
+  if (!data || data.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" style="text-align:center;padding:3rem 1rem;">
+          <div style="color:var(--muted);">
+            <div style="font-size:3rem;margin-bottom:1rem;opacity:.5;">📄</div>
+            <div style="font-size:1.1rem;font-weight:600;color:var(--white);margin-bottom:.5rem;">
+              Nenhum documento ainda
+            </div>
+            <div style="font-size:.85rem;max-width:320px;margin:0 auto .5rem;">
+              Comece enviando seu primeiro documento para assinatura digital.
+            </div>
+            <button onclick="window.navigate('upload')" style="margin-top:1rem;padding:.6rem 1.5rem;background:linear-gradient(135deg,var(--gold),var(--gold-d));color:var(--ink);border:none;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit;">
+              + Novo Documento
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+  
   data.forEach((doc, idx) => {
     const tr = document.createElement('tr');
     tr.style.animationDelay = (idx * 0.04) + 's';
@@ -7079,6 +7216,21 @@ function filterDocs(f, btn) {
 // ── ACTIVITY ──
 function renderActivity() {
   const list = document.getElementById('feed-list');
+  if (!list) return;
+  
+  // Estado vazio elegante quando não há atividades
+  if (!activity || activity.length === 0) {
+    list.innerHTML = `
+      <div style="text-align:center;padding:2rem 1rem;color:var(--muted);">
+        <div style="font-size:2rem;margin-bottom:.8rem;opacity:.5;">📋</div>
+        <div style="font-size:.9rem;">Nenhuma atividade recente</div>
+        <div style="font-size:.78rem;margin-top:.3rem;">Suas ações aparecerão aqui</div>
+      </div>
+    `;
+    return;
+  }
+  
+  list.innerHTML = ''; // Limpa antes de renderizar
   activity.forEach((item, i) => {
     const el = document.createElement('div');
     el.className = 'feed-item fade-in-up';
@@ -7146,6 +7298,26 @@ function openNewDoc() { window.navigate&&window.navigate('upload'); }
 // ── TOAST ──
 function showToast(msg, type) { if(window.showGlobalToast) window.showGlobalToast(msg,type||'success'); }
 
+// ── INIT DASHBOARD (chamado quando navega para o dash) ──
+window.initDashboard = function() {
+  // Atualiza os dados do Firebase
+  docs = getDocs();
+  activity = getActivity();
+  
+  // Re-renderiza a interface (tabela local do script)
+  renderDocs(docs);
+  renderActivity();
+  renderChart('7m');
+  
+  // Tambem chama o renderizador global para atualizar stats e tabela principal
+  if (window._renderDashboard) window._renderDashboard();
+  
+  // Atualiza sidebar
+  if (window.updateSidebarStats) window.updateSidebarStats();
+  
+  console.log('[Dashboard] Inicializado com', (window.allDocs || []).length, 'documentos do Firebase');
+};
+
 // ── window exports ──
 window.openDocModal = openDocModal;
 window.statusBadge = statusBadge;
@@ -7154,6 +7326,8 @@ window.filterDocs = filterDocs;
 window.setCf = setCf;
 window.setActive = setActive;
 window.showToast = showToast;
+window.getDocs = getDocs;
+window.getActivity = getActivity;
 }catch(e){console.error("Page script error:",e);}
 })();
 </script>
@@ -7351,7 +7525,7 @@ async function processPayment() {
   const btn = document.getElementById('pay-btn');
   if (!btn) return;
   const originalHTML = btn.innerHTML;
-  const API = 'http://localhost:3001';
+  const API = window.ASSINAFACIL_API_URL || 'https://assinafacil-api.onrender.com';
   const email = window.currentUser ? window.currentUser.email : 'cliente@email.com';
   const planName = selectedPlan ? selectedPlan.name : 'Mensal';
 
@@ -7400,7 +7574,7 @@ async function processPayment() {
 }
 
 async function processBoleto(btn, originalHTML) {
-  const API = 'http://localhost:3001';
+  const API = window.ASSINAFACIL_API_URL || 'https://assinafacil-api.onrender.com';
   const email = window.currentUser ? window.currentUser.email : 'cliente@email.com';
   const planName = selectedPlan ? selectedPlan.name : 'Mensal';
   if (btn) { btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Gerando boleto...'; }
@@ -7475,7 +7649,7 @@ function generateQR() {
 function copyPix() {
   const code = document.getElementById('pix-code').textContent;
   navigator.clipboard.writeText(code).catch(()=>{});
-  showToast('Código PIX copiado!', 'success');
+  showToast('C��digo PIX copiado!', 'success');
   // simulate payment after copy (demo)
   setTimeout(() => {
     closePixModal();
@@ -7538,7 +7712,7 @@ window.showToast = showToast;
 
 // ── SERVER PAYMENT INTEGRATION ──
 async function pagarViaServidor(method) {
-  const API = 'http://localhost:3001';
+  const API = window.ASSINAFACIL_API_URL || 'https://assinafacil-api.onrender.com';
   const planEl = document.querySelector('.plan-card.selected, .plan-option.active, [data-selected="true"]');
   const planName = window.selectedPlanName || 'Mensal';
   const user = window.currentUser;
@@ -7733,7 +7907,7 @@ console.log('✅ Firebase inicializado — AssinaFácil');
 // ══════════════════════════════════════════════════════
 //  ICP-BRASIL A1 — Modal de Assinatura com Certificado
 // ══════════════════════════════════════════════════════
-const API_ICP = 'http://localhost:3001';
+const API_ICP = window.ASSINAFACIL_API_URL || 'https://assinafacil-api.onrender.com';
 
 function openIcpModal() {
   removeModal('icp-modal');
@@ -8250,8 +8424,8 @@ window._renderDashboard = function() {
     '<td><span class="doc-status ' + s.cls + '">' + s.icon + ' ' + s.label + '</span></td>' +
     '<td style="font-size:.8rem;color:rgba(255,255,255,.5)">' + dtStr + '</td>' +
     '<td style="font-size:.8rem;color:rgba(255,255,255,.35)">—</td>' +
-    '<td><button onclick="window.currentDocId=\'' + (doc.id || '') + '\'; window.location.href=\'sign.html\'" style="background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.2);color:#c9a84c;padding:.3rem .7rem;border-radius:6px;font-size:.75rem;cursor:pointer;font-weight:600">Assinar</button></td>' +
-    '<td><button onclick="window.currentDocId=\'' + (doc.id || '') + '\'; window.location.href=\'view.html\'" style="background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.2);color:#c9a84c;padding:.3rem .7rem;border-radius:6px;font-size:.75rem;cursor:pointer;font-weight:600">Ver</button></td>' +
+    '<td><button onclick="window.currentDocId=\'' + (doc.id || '') + '\'; window.navigate(\'sign\')" style="background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.2);color:#c9a84c;padding:.3rem .7rem;border-radius:6px;font-size:.75rem;cursor:pointer;font-weight:600">Assinar</button></td>' +
+    '<td><button onclick="window.currentDocId=\'' + (doc.id || '') + '\'; window.navigate(\'sign\')" style="background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.2);color:#c9a84c;padding:.3rem .7rem;border-radius:6px;font-size:.75rem;cursor:pointer;font-weight:600">Ver</button></td>' +
   '</tr>';
 }).join('');
 

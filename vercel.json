@@ -1,0 +1,57 @@
+{
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/assina-facil",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/assina-facil/(.*)",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/dashboard",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/upload",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/sign",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/auth",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/pay",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/((?!api|_next|favicon|.*\\..*).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
