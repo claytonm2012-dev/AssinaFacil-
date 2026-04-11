@@ -5842,6 +5842,9 @@ async function showPreview(filename) {
   // show main view
   (document.getElementById('main-preview')||{classList:{add:function(){},remove:function(){},toggle:function(){}}}).classList.add('show');
   renderMainPage(1);
+  
+  // Atualizar estado do botao de envio
+  updateSendBtn();
 }
 
 async function renderThumb(pageNum, wrap) {
@@ -5977,10 +5980,11 @@ function renderSigners() {
 
 function updateSendBtn() {
   const btn = document.getElementById('send-btn');
+  if (!btn) return;
   const hasDoc = pdfDoc !== null;
   const hasSigners = signers.length > 0;
   btn.disabled = !(hasDoc && hasSigners);
-}
+  }
 
 function toggleOrder(btn) {
   orderMode = !orderMode;
@@ -5988,13 +5992,93 @@ function toggleOrder(btn) {
 }
 
 // ── SEND ──
-function sendDocument() {
+async function sendDocument() {
+  const btn = document.getElementById('send-btn');
   const docName = document.getElementById('doc-name').value || 'documento';
-  const id = Math.random().toString(36).slice(2, 10);
-  document.getElementById('share-link').textContent = `https://assinafacil.com.br/sign/${id}`;
-
-  (document.getElementById('step3')||{classList:{add:function(){},remove:function(){},toggle:function(){}}}).classList.add('done');
-  (document.getElementById('modal')||{classList:{add:function(){},remove:function(){},toggle:function(){}}}).classList.add('show');
+  
+  // Validacoes
+  if (!pdfDoc) {
+    if (window.showToast) showToast('Carregue um documento PDF primeiro.', 'error');
+    else alert('Carregue um documento PDF primeiro.');
+    return;
+  }
+  
+  if (signers.length === 0) {
+    if (window.showToast) showToast('Adicione pelo menos um signatario.', 'error');
+    else alert('Adicione pelo menos um signatario.');
+    return;
+  }
+  
+  // Estado de loading
+  const originalText = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = 'Enviando...';
+  }
+  
+  try {
+    const id = Math.random().toString(36).slice(2, 10);
+    
+    // Preparar dados do documento
+    const documentData = {
+      id: id,
+      name: docName,
+      signers: signers.map(s => ({
+        name: s.name,
+        email: s.email,
+        auth: s.auth || 'assinatura'
+      })),
+      orderMode: orderMode,
+      createdAt: new Date().toISOString(),
+      status: 'pending'
+    };
+    
+    // Tentar salvar no Firebase se disponivel
+    if (window.fbDb && window.currentUser && window.fbDoc && window.fbSetDoc && window.fbServerTimestamp) {
+      try {
+        const docRef = window.fbDoc(window.fbDb, 'documents', id);
+        await window.fbSetDoc(docRef, {
+          ...documentData,
+          userId: window.currentUser.uid,
+          createdAt: window.fbServerTimestamp()
+        });
+      } catch(fbErr) {
+        console.warn('Firebase save failed:', fbErr.message);
+      }
+    }
+    
+    // Atualizar link de compartilhamento
+    document.getElementById('share-link').textContent = 'https://assinafacil.com.br/sign/' + id;
+    
+    // Marcar step 3 como concluido
+    const step3 = document.getElementById('step3');
+    if (step3) step3.classList.add('done');
+    const line2 = document.getElementById('line2');
+    if (line2) line2.classList.add('done-line');
+    
+    // Mostrar modal de sucesso
+    const modal = document.getElementById('modal');
+    if (modal) modal.classList.add('show');
+    
+    // Toast de sucesso
+    if (window.showToast) showToast('Documento enviado com sucesso!', 'success');
+    
+    // Adicionar aos documentos locais para atualizar dashboard
+    if (!window.allDocs) window.allDocs = [];
+    window.allDocs.unshift(documentData);
+    
+  } catch(err) {
+    console.error('Erro ao enviar documento:', err);
+    if (window.showToast) showToast('Erro ao enviar documento.', 'error');
+    else alert('Erro ao enviar documento.');
+  } finally {
+    // Restaurar botao
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+    }
+    updateSendBtn();
+  }
 }
 
 function closeModal() {
@@ -6022,6 +6106,10 @@ window.sendDocument = sendDocument;
 window.addSigner = addSigner;
 window.removeSigner = removeSigner;
 window.changePage = changePage;
+window.toggleOrder = toggleOrder;
+window.updateSendBtn = updateSendBtn;
+window.closeModal = closeModal;
+window.copyLink = copyLink;
 }catch(e){console.error("Page script error:",e);}
 })();
 </script>
@@ -7786,14 +7874,14 @@ import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
          signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged,
          sendPasswordResetEmail, updateProfile }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { getFirestore, collection, addDoc, getDocs, getDoc, doc,
+import { getFirestore, collection, addDoc, getDocs, getDoc, doc, setDoc,
          updateDoc, query, where, orderBy, serverTimestamp }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAX9l09cNA59HemBrzd8KxvfSF9pt0osvY",
+  apiKey: "AIzaSyBvwK9ALIFiUVnWw6RPwOTr5XdCyEjJpJg",
   authDomain: "assinafacil-38bb9.firebaseapp.com",
   projectId: "assinafacil-38bb9",
   storageBucket: "assinafacil-38bb9.firebasestorage.app",
@@ -7813,6 +7901,7 @@ window.fbDb = db;
 window.fbStorage = storage;
 window.fbCollection = collection;
 window.fbAddDoc = addDoc;
+window.fbSetDoc = setDoc;
 window.fbGetDocs = getDocs;
 window.fbGetDoc = getDoc;
 window.fbDoc = doc;
