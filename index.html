@@ -8545,3 +8545,15 @@ function dashClock() {
     });
   }
 }
+
+// Run clock on load and every minute
+dashClock();
+setInterval(dashClock, 60000);
+
+// Initialize dashboard when DOM ready
+document.addEventListener('DOMContentLoaded', function() {
+  if (window._renderDashboard) window._renderDashboard();
+});
+</script>
+</body>
+</html>
